@@ -174,12 +174,13 @@ func (f *Form) SetFocus(index int) *Form {
 // the input field's text has changed.
 func (f *Form) AddInputField(label, value string, fieldWidth int, accept func(textToCheck string, lastChar rune) bool, changed func(text string), inputField **InputField) *Form {
 	if *inputField == nil {
-		inputField = &NewInputField().
+		inpField := NewInputField().
 			SetLabel(label).
 			SetText(value).
 			SetFieldWidth(fieldWidth).
 			SetAcceptanceFunc(accept).
 			SetChangedFunc(changed)
+		inputField = &inpField
 	}
 	f.items = append(f.items, *inputField)
 	return f
