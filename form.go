@@ -172,18 +172,16 @@ func (f *Form) SetFocus(index int) *Form {
 // an optional accept function to validate the item's value (set to nil to
 // accept any text), and an (optional) callback function which is invoked when
 // the input field's text has changed.
-func (f *Form) AddInputField(label, value string, fieldWidth int, accept func(textToCheck string, lastChar rune) bool, changed func(text string), inputField **InputField) *Form {
-	if *inputField == nil {
-		inpField := NewInputField().
+func (f *Form) AddInputField(label, value string, fieldWidth int, accept func(textToCheck string, lastChar rune) bool, changed func(text string)) (*Form,*InputField) {
+	inputField := NewInputField().
 			SetLabel(label).
 			SetText(value).
 			SetFieldWidth(fieldWidth).
 			SetAcceptanceFunc(accept).
 			SetChangedFunc(changed)
-		inputField = &inpField
-	}
-	f.items = append(f.items, *inputField)
-	return f
+
+	f.items = append(f.items, inputField)
+	return f, inputField
 }
 
 // AddPasswordField adds a password field to the form. This is similar to an
