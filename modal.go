@@ -61,6 +61,12 @@ func (m *Modal) SetBackgroundColor(color tcell.Color) *Modal {
 	return m
 }
 
+// SetTitle sets the message window frame title.
+func (m *Modal) SetTitle(title string) *Modal {
+	m.frame.SetTitle(title)
+	return m
+}
+
 // SetTextColor sets the color of the message text.
 func (m *Modal) SetTextColor(color tcell.Color) *Modal {
 	m.textColor = color
