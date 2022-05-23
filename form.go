@@ -181,7 +181,7 @@ func (f *Form) AddInputField(label, value string, fieldWidth int, accept func(te
 			SetAcceptanceFunc(accept).
 			SetChangedFunc(changed)
 	}
-	f.items = append(f.items, inputField)
+	f.items = append(f.items, *inputField)
 	return f
 }
 
