@@ -172,9 +172,9 @@ func (f *Form) SetFocus(index int) *Form {
 // an optional accept function to validate the item's value (set to nil to
 // accept any text), and an (optional) callback function which is invoked when
 // the input field's text has changed.
-func (f *Form) AddInputField(label, value string, fieldWidth int, accept func(textToCheck string, lastChar rune) bool, changed func(text string), inputField *InputField) *Form {
-	if inputField == nil {
-		inputField = NewInputField().
+func (f *Form) AddInputField(label, value string, fieldWidth int, accept func(textToCheck string, lastChar rune) bool, changed func(text string), inputField **InputField) *Form {
+	if *inputField == nil {
+		inputField = &NewInputField().
 			SetLabel(label).
 			SetText(value).
 			SetFieldWidth(fieldWidth).
