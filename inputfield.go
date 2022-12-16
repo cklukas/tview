@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/uniseg"
 )
 
 // InputField is a one-line box (three lines if there is a title) where the
@@ -248,6 +249,11 @@ func (i *InputField) GetFieldWidth() int {
 	return i.fieldWidth
 }
 
+// GetFieldHeight returns this primitive's field height.
+func (i *InputField) GetFieldHeight() int {
+	return 1
+}
+
 // SetMaskCharacter sets a character that masks user input on a screen. A value
 // of 0 disables masking.
 func (i *InputField) SetMaskCharacter(mask rune) *InputField {
@@ -371,13 +377,13 @@ func (i *InputField) Draw(screen tcell.Screen) {
 	_, labelBg, _ := i.labelStyle.Decompose()
 	if i.labelWidth > 0 {
 		labelWidth := i.labelWidth
-		if labelWidth > rightLimit-x {
-			labelWidth = rightLimit - x
+		if labelWidth > width {
+			labelWidth = width
 		}
 		printWithStyle(screen, i.label, x, y, 0, labelWidth, AlignLeft, i.labelStyle, labelBg == tcell.ColorDefault)
 		x += labelWidth
 	} else {
-		_, drawnWidth, _, _ := printWithStyle(screen, i.label, x, y, 0, rightLimit-x, AlignLeft, i.labelStyle, labelBg == tcell.ColorDefault)
+		_, drawnWidth, _, _ := printWithStyle(screen, i.label, x, y, 0, width, AlignLeft, i.labelStyle, labelBg == tcell.ColorDefault)
 		x += drawnWidth
 	}
 
@@ -414,11 +420,11 @@ func (i *InputField) Draw(screen tcell.Screen) {
 		if i.maskCharacter > 0 {
 			text = strings.Repeat(string(i.maskCharacter), utf8.RuneCountInString(i.text))
 		}
-		if fieldWidth >= stringWidth(text) {
+		if fieldWidth >= uniseg.StringWidth(text) {
 			// We have enough space for the full text.
 			printWithStyle(screen, Escape(text), x, y, 0, fieldWidth, AlignLeft, i.fieldStyle, true)
 			i.offset = 0
-			iterateString(text, func(main rune, comb []rune, textPos, textWidth, screenPos, screenWidth int) bool {
+			iterateString(text, func(main rune, comb []rune, textPos, textWidth, screenPos, screenWidth, boundaries int) bool {
 				if textPos >= i.cursorPos {
 					return true
 				}
@@ -436,11 +442,11 @@ func (i *InputField) Draw(screen tcell.Screen) {
 			var shiftLeft int
 			if i.offset > i.cursorPos {
 				i.offset = i.cursorPos
-			} else if subWidth := stringWidth(text[i.offset:i.cursorPos]); subWidth > fieldWidth-1 {
+			} else if subWidth := uniseg.StringWidth(text[i.offset:i.cursorPos]); subWidth > fieldWidth-1 {
 				shiftLeft = subWidth - fieldWidth + 1
 			}
 			currentOffset := i.offset
-			iterateString(text, func(main rune, comb []rune, textPos, textWidth, screenPos, screenWidth int) bool {
+			iterateString(text, func(main rune, comb []rune, textPos, textWidth, screenPos, screenWidth, boundaries int) bool {
 				if textPos >= currentOffset {
 					if shiftLeft > 0 {
 						i.offset = textPos + textWidth
@@ -520,7 +526,7 @@ func (i *InputField) InputHandler() func(event *tcell.EventKey, setFocus func(p 
 			})
 		}
 		moveRight := func() {
-			iterateString(i.text[i.cursorPos:], func(main rune, comb []rune, textPos, textWidth, screenPos, screenWidth int) bool {
+			iterateString(i.text[i.cursorPos:], func(main rune, comb []rune, textPos, textWidth, screenPos, screenWidth, boundaries int) bool {
 				i.cursorPos += textWidth
 				return true
 			})
@@ -616,7 +622,7 @@ func (i *InputField) InputHandler() func(event *tcell.EventKey, setFocus func(p 
 				i.offset = 0
 			}
 		case tcell.KeyDelete, tcell.KeyCtrlD: // Delete character after the cursor.
-			iterateString(i.text[i.cursorPos:], func(main rune, comb []rune, textPos, textWidth, screenPos, screenWidth int) bool {
+			iterateString(i.text[i.cursorPos:], func(main rune, comb []rune, textPos, textWidth, screenPos, screenWidth, boundaries int) bool {
 				i.text = i.text[:i.cursorPos] + i.text[i.cursorPos+textWidth:]
 				return true
 			})
@@ -685,21 +691,25 @@ func (i *InputField) MouseHandler() func(action MouseAction, event *tcell.EventM
 		}
 
 		// Process mouse event.
-		if action == MouseLeftClick && y == rectY {
-			// Determine where to place the cursor.
-			if x >= i.fieldX {
-				if !iterateString(i.text[i.offset:], func(main rune, comb []rune, textPos int, textWidth int, screenPos int, screenWidth int) bool {
-					if x-i.fieldX < screenPos+screenWidth {
-						i.cursorPos = textPos + i.offset
-						return true
+		if y == rectY {
+			if action == MouseLeftDown {
+				setFocus(i)
+				consumed = true
+			} else if action == MouseLeftClick {
+				// Determine where to place the cursor.
+				if x >= i.fieldX {
+					if !iterateString(i.text[i.offset:], func(main rune, comb []rune, textPos int, textWidth int, screenPos int, screenWidth, boundaries int) bool {
+						if x-i.fieldX < screenPos+screenWidth {
+							i.cursorPos = textPos + i.offset
+							return true
+						}
+						return false
+					}) {
+						i.cursorPos = len(i.text)
 					}
-					return false
-				}) {
-					i.cursorPos = len(i.text)
 				}
+				consumed = true
 			}
-			setFocus(i)
-			consumed = true
 		}
 
 		return

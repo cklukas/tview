@@ -150,7 +150,7 @@ func (l *List) GetOffset() (int, int) {
 // always removed.
 //
 // The currently selected item is shifted accordingly. If it is the one that is
-// removed, a "changed" event is fired.
+// removed, a "changed" event is fired, unless no items are left.
 func (l *List) RemoveItem(index int) *List {
 	if len(l.items) == 0 {
 		return l
@@ -177,7 +177,7 @@ func (l *List) RemoveItem(index int) *List {
 
 	// Shift current item.
 	previousCurrentItem := l.currentItem
-	if l.currentItem >= index {
+	if l.currentItem > index || l.currentItem == len(l.items) {
 		l.currentItem--
 	}
 
@@ -699,7 +699,6 @@ func (l *List) MouseHandler() func(action MouseAction, event *tcell.EventMouse, 
 		// Process mouse event.
 		switch action {
 		case MouseLeftClick:
-			setFocus(l)
 			index := l.indexAtPoint(event.Position())
 			if index != -1 {
 				item := l.items[index]
@@ -714,6 +713,7 @@ func (l *List) MouseHandler() func(action MouseAction, event *tcell.EventMouse, 
 				}
 				l.currentItem = index
 			}
+			setFocus(l)
 			consumed = true
 		case MouseScrollUp:
 			if l.itemOffset > 0 {
